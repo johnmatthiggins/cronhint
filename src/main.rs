@@ -8,7 +8,12 @@ enum ExpSeg {
     List(Vec<usize>),
     Range(String, String),
     Frac(String, String),
-    Symbol(String),
+    Symbol(CronSymbol),
+}
+
+enum CronSymbol {
+    Wildcard,
+    Number(usize),
 }
 
 fn main() {
@@ -64,7 +69,7 @@ fn parse_list(exp: &String) -> Option<ExpSeg> {
 }
 
 fn parse_range(exp: &String) -> Option<ExpSeg> {
-    
+    None
 }
 
 fn parse_frac(exp: &String) -> Option<ExpSeg> {
@@ -72,4 +77,12 @@ fn parse_frac(exp: &String) -> Option<ExpSeg> {
 }
 
 fn parse_sym(exp: &String) -> Option<ExpSeg> {
+    if exp.as_str() == "*" {
+        Some(ExpSeg::Symbol(CronSymbol::Wildcard))
+    }
+    else {
+        exp.parse::<usize>()
+            .ok()
+            .map(|n| ExpSeg::Symbol(CronSymbol::Number(n)))
+    }
 }
