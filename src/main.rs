@@ -1,13 +1,18 @@
 use std::vec::Vec;
 
 struct CronExp {
+    minute: ExpSeg,
+    hour: ExpSeg,
+    day: ExpSeg,
+    month: ExpSeg,
+    weekday: ExpSeg,
 }
 
 // Segment of CRON expression.
 enum ExpSeg {
     List(Vec<usize>),
     Range(String, String),
-    Frac(String, String),
+    Frac(usize),
     Symbol(CronSymbol),
 }
 
@@ -73,7 +78,17 @@ fn parse_range(exp: &String) -> Option<ExpSeg> {
 }
 
 fn parse_frac(exp: &String) -> Option<ExpSeg> {
-    None
+    let mut split_exp: Vec<&str> = exp.split("/").collect();
+
+    if split_exp.first().map_or(false, |x| *x == "*") {
+        split_exp
+            .get(1)
+            .and_then(|x| x.parse::<usize>().ok())
+            .map(|x| ExpSeg::Frac(x))
+    }
+    else {
+        None
+    }
 }
 
 fn parse_sym(exp: &String) -> Option<ExpSeg> {
