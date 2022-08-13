@@ -39,7 +39,36 @@ fn main() {
 
         let cron_exp = parse_cron_exp(&cron_str);
 
-        println!("{}", cron_exp.unwrap().to_string());
+        if let Some(exp) = cron_exp {
+            println!("{}", exp.to_string());
+        }
+        else {
+            println!("Expression could not be parsed!");
+        }
+    }
+}
+
+fn with_ordinal_postfix(number: &usize) -> String {
+    match number {
+        11 => String::from("11th"),
+        12 => String::from("12th"),
+        13 => String::from("13th"),
+        _ => {
+            let last_character: char = number
+                .to_string()
+                .chars()
+                .collect()
+                .last()
+                .unwrap();
+
+            match last_character {
+                '0' | '4' | '5' | '6' | '7' | '8' | '9'
+                    => String::from(format!("{}th", number.to_string())),
+                '1' => String::from(format!("{}st", number.to_string())),
+                '2' => String::from(format!("{}nd", number.to_string())),
+                '3' => String::from(format!("{}rd", number.to_string())),
+            }
+        },
     }
 }
 
