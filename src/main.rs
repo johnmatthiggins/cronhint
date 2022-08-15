@@ -2,21 +2,36 @@ use std::vec::Vec;
 use std::env;
 
 #[derive(Debug)]
+enum TimeType {
+    Minute,
+    Hour,
+    Day,
+    Month,
+    Weekday,
+}
+
+#[derive(Debug)]
 struct CronExp {
-    minute: ExpSeg,
-    hour: ExpSeg,
-    day: ExpSeg,
-    month: ExpSeg,
-    weekday: ExpSeg,
+    minute: ExpComponent,
+    hour: ExpComponent,
+    day: ExpComponent,
+    month: ExpComponent,
+    weekday: ExpComponent,
 }
 
 // Segment of CRON expression.
 #[derive(Debug, Clone)]
-enum ExpSeg {
+enum ExpValue {
     List(Vec<usize>),
     Range(usize, usize),
     Frac(usize),
     Symbol(CronSymbol),
+}
+
+#[derive(Debug)]
+struct ExpComponent {
+    value: ExpValue,
+    units: TimeType,
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +63,34 @@ fn main() {
     }
 }
 
+// fn print_daytime(minute: ExpValue, hour: ExpValue) -> String {
+//     match (minute, hour) {
+//         (List(m_list), List(h_list)) =>,
+//         (Range(m_start, m_end), Range(h_start, m_end)) => ,
+//         (Frac(m_frac), Frac(h_frac)) =>,
+//         (Symbol(m_cron), Symbol(h_cron)) =>,
+//     }
+// }
+
+fn print_hour_minute_symbol(minute: CronSymbol, hour: CronSymbol) -> String {
+    match (minute, hour) {
+        (CronSymbol::Wildcard, CronSymbol::Wildcard) => String::from("At every minute"),
+        (CronSymbol::Wildcard, CronSymbol::Number(h_n)) =>
+            String::from(format!("At every minute past {}", time_with_am_pm(h_n, 0))),
+        (CronSymbol::Number(m_n), CronSymbol::Number(h_n)) => String::from(format!("At {}", time_with_am_pm(m_n, h_n))),
+        (CronSymbol::Number(m_n), CronSymbol::Wildcard) => String::from("At minute 0 every hour"),
+    }
+}
+
+fn time_with_am_pm(hour: usize, minutes: usize) -> String {
+    match hour % 24 {
+        0 => String::from(format!("12:{:0>#9} AM", minutes)),
+        12 => String::from(format!("{}:{:0>#9} PM", hour, minutes)),
+        13 ..= 23 => String::from(format!("{}:{:0>#9} PM", (hour % 24) - 11, minutes)),
+        _ => String::from(format!("{}:{:0>#9} AM", hour, minutes)),
+    }
+}
+
 fn with_ordinal_postfix(number: &usize) -> String {
     match number {
         11 => String::from("11th"),
@@ -57,7 +100,6 @@ fn with_ordinal_postfix(number: &usize) -> String {
             let last_character: char = number
                 .to_string()
                 .chars()
-                .collect()
                 .last()
                 .unwrap();
 
@@ -67,6 +109,7 @@ fn with_ordinal_postfix(number: &usize) -> String {
                 '1' => String::from(format!("{}st", number.to_string())),
                 '2' => String::from(format!("{}nd", number.to_string())),
                 '3' => String::from(format!("{}rd", number.to_string())),
+                _ => panic!("CANNOT PARSE!!!"),
             }
         },
     }
@@ -76,21 +119,21 @@ impl ToString for CronExp {
     fn to_string(&self) -> String {
         String::from(format!(
                      "{} {} {} {} {}",
-                     self.minute.to_string(),
-                     self.hour.to_string(),
-                     self.day.to_string(),
-                     self.month.to_string(),
-                     self.weekday.to_string()))
+                     self.minute.value.to_string(),
+                     self.hour.value.to_string(),
+                     self.day.value.to_string(),
+                     self.month.value.to_string(),
+                     self.weekday.value.to_string()))
     }
 }
 
-impl ToString for ExpSeg {
+impl ToString for ExpValue {
     fn to_string(&self) -> String {
         match self {
-            ExpSeg::List(l) => l.into_iter().map(|x| x.to_string()).collect::<Vec<String>>().join(","),
-            ExpSeg::Range(a, b) => String::from(format!("{}-{}", a, b)),
-            ExpSeg::Frac(v) => String::from(format!("*/{}", v)),
-            ExpSeg::Symbol(s) => match s {
+            ExpValue::List(l) => l.into_iter().map(|x| x.to_string()).collect::<Vec<String>>().join(","),
+            ExpValue::Range(a, b) => String::from(format!("{}-{}", a, b)),
+            ExpValue::Frac(v) => String::from(format!("*/{}", v)),
+            ExpValue::Symbol(s) => match s {
                 CronSymbol::Wildcard => String::from("*"),
                 CronSymbol::Number(n) => n.to_string(),
             },
@@ -104,7 +147,7 @@ fn parse_cron_exp(cron_exp: &String) -> Option<CronExp> {
         .collect();
 
     if cron_vec.len() == 5 {
-        let cron_segs: Vec<ExpSeg> = cron_vec
+        let cron_segs: Vec<ExpValue> = cron_vec
             .into_iter()
             .map(|x| parse_exp_seg(&x.to_string()))
             .filter(|x| matches!(x, Some(_)))
@@ -113,11 +156,26 @@ fn parse_cron_exp(cron_exp: &String) -> Option<CronExp> {
 
         if cron_segs.len() == 5 {
             let result = CronExp {
-                minute: cron_segs.get(0).unwrap().clone(),
-                hour: cron_segs.get(1).unwrap().clone(),
-                day: cron_segs.get(2).unwrap().clone(),
-                month: cron_segs.get(3).unwrap().clone(),
-                weekday: cron_segs.get(4).unwrap().clone(),
+                minute: ExpComponent {
+                    value: cron_segs.get(0).unwrap().clone(),
+                    units: TimeType::Minute,
+                },
+                hour: ExpComponent {
+                    value: cron_segs.get(1).unwrap().clone(),
+                    units: TimeType::Hour,
+                },
+                day: ExpComponent {
+                    value: cron_segs.get(2).unwrap().clone(),
+                    units: TimeType::Day,
+                },
+                month: ExpComponent {
+                    value: cron_segs.get(3).unwrap().clone(),
+                    units: TimeType::Month,
+                },
+                weekday: ExpComponent { 
+                    value: cron_segs.get(4).unwrap().clone(),
+                    units: TimeType::Weekday,
+                },
             };
 
             Some(result)
@@ -131,7 +189,7 @@ fn parse_cron_exp(cron_exp: &String) -> Option<CronExp> {
     }
 }
 
-fn parse_exp_seg(exp: &String) -> Option<ExpSeg> {
+fn parse_exp_seg(exp: &String) -> Option<ExpValue> {
     if let Some(v) = parse_list(exp) {
         Some(v)
     }
@@ -149,7 +207,7 @@ fn parse_exp_seg(exp: &String) -> Option<ExpSeg> {
     }
 }
 
-fn parse_list(exp: &String) -> Option<ExpSeg> {
+fn parse_list(exp: &String) -> Option<ExpValue> {
     let list: Vec<&str> = exp
         .split(",")
         .collect();
@@ -166,11 +224,11 @@ fn parse_list(exp: &String) -> Option<ExpSeg> {
         None
     }
     else {
-        Some(ExpSeg::List(result))
+        Some(ExpValue::List(result))
     }
 }
 
-fn parse_range(exp: &String) -> Option<ExpSeg> {
+fn parse_range(exp: &String) -> Option<ExpValue> {
     let split_exp: Vec<&str> = exp.split("-").collect();
 
     let first: Option<usize> = split_exp
@@ -182,30 +240,30 @@ fn parse_range(exp: &String) -> Option<ExpSeg> {
 
     // Combine into range expression.
     first.and_then(|a| second
-            .map(|b| ExpSeg::Range(a, b)))
+            .map(|b| ExpValue::Range(a, b)))
 }
 
-fn parse_frac(exp: &String) -> Option<ExpSeg> {
+fn parse_frac(exp: &String) -> Option<ExpValue> {
     let split_exp: Vec<&str> = exp.split("/").collect();
 
     if split_exp.first().map_or(false, |x| *x == "*") {
         split_exp
             .get(1)
             .and_then(|x| x.parse::<usize>().ok())
-            .map(|x| ExpSeg::Frac(x))
+            .map(|x| ExpValue::Frac(x))
     }
     else {
         None
     }
 }
 
-fn parse_sym(exp: &String) -> Option<ExpSeg> {
+fn parse_sym(exp: &String) -> Option<ExpValue> {
     if exp.as_str() == "*" {
-        Some(ExpSeg::Symbol(CronSymbol::Wildcard))
+        Some(ExpValue::Symbol(CronSymbol::Wildcard))
     }
     else {
         exp.parse::<usize>()
             .ok()
-            .map(|n| ExpSeg::Symbol(CronSymbol::Number(n)))
+            .map(|n| ExpValue::Symbol(CronSymbol::Number(n)))
     }
 }

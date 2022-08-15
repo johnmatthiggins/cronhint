@@ -1,0 +1,31 @@
+CRON EXAMPLES:
+(Courtesy of crontab guru)
+
+5 0 * 8 *
+= At 00:05 in August.
+
+At [[5:Minute],[0:Hour]] in [8:Month].
+
+15 14 1 * *
+= At 14:15 on day-of-month 1.
+
+At [[15:Minute],[14:Hour]] on [1:Day].
+
+0 22 * * 1-5
+= At 22:00 on every day-of-week from Monday through Friday.
+
+At [[0:Minute],[22:Hour]] on [1-5:WeekDay]
+
+23 0-20/2 * * *
+= At minute 23 past every 2nd hour from 0 through 20.
+
+At []
+
+5 4 * * 0
+= At 04:05 on Sunday.
+
+0 0,12 1 */2 *
+= At minute 0 past hour 0 and 12 on day-of-month 1 in every 2nd month.
+
+0 4 8-14 * *
+= At 04:00 on every day-of-month from 8 through 14.
