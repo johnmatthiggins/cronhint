@@ -63,14 +63,42 @@ fn main() {
     }
 }
 
-// fn print_daytime(minute: ExpValue, hour: ExpValue) -> String {
-//     match (minute, hour) {
-//         (List(m_list), List(h_list)) =>,
-//         (Range(m_start, m_end), Range(h_start, m_end)) => ,
-//         (Frac(m_frac), Frac(h_frac)) =>,
-//         (Symbol(m_cron), Symbol(h_cron)) =>,
-//     }
-// }
+fn print_daytime(minute: ExpValue, hour: ExpValue) -> String {
+    match (minute, hour) {
+        (ExpValue::List(m_list), ExpValue::List(h_list))
+            => print_hour_minute_lists(&m_list, &h_list),
+        (ExpValue::Range(m_start, m_end), ExpValue::Range(h_start, h_end))
+            => todo!(),
+        (ExpValue::Frac(m_frac), ExpValue::Frac(h_frac))
+            => todo!(),
+        (ExpValue::Symbol(m_sym), ExpValue::Symbol(h_sym))
+            => todo!(),
+        (ExpValue::Symbol(m_sym), ExpValue::Frac(h_frac))
+            => todo!(),
+        (ExpValue::Frac(m_frac), ExpValue::Symbol(h_sym))
+            => todo!(),
+        (ExpValue::Range(m_start, m_end), ExpValue::Symbol(h_sym))
+            => todo!(),
+        (ExpValue::Symbol(m_sym), ExpValue::Range(h_start, h_end))
+            => todo!(),
+        (ExpValue::Range(m_start, m_end), ExpValue::Frac(h_frac))
+            => todo!(),
+        (ExpValue::Frac(m_frac), ExpValue::Range(h_start, h_end))
+            => todo!(),
+        (ExpValue::Range(m_start, m_end), ExpValue::List(h_list))
+            => todo!(),
+        (ExpValue::List(m_list), ExpValue::Range(h_start, h_end))
+            => todo!(),
+        (ExpValue::Symbol(m_sym), ExpValue::List(h_list))
+            => todo!(),
+        (ExpValue::List(m_list), ExpValue::Symbol(h_sym))
+            => todo!(),
+        (ExpValue::Frac(m_frac), ExpValue::List(h_list))
+            => todo!(),
+        (ExpValue::List(m_list), ExpValue::Frac(h_frac))
+            => todo!(),
+    }
+}
 
 fn weekday_name(day: usize) -> String {
     match day % 7 {
@@ -82,6 +110,10 @@ fn weekday_name(day: usize) -> String {
         6 => String::from("Saturday"),
         _ => String::from("Sunday")
     }
+}
+
+fn print_hour_minute_lists(minute: &Vec<usize>, hour: &Vec<usize>) -> String {
+    todo!()
 }
 
 fn print_hour_minute_symbol(minute: CronSymbol, hour: CronSymbol) -> String {
