@@ -72,6 +72,18 @@ fn main() {
 //     }
 // }
 
+fn weekday_name(day: usize) -> String {
+    match day % 7 {
+        1 => String::from("Monday"),
+        2 => String::from("Tuesday"),
+        3 => String::from("Wednesday"),
+        4 => String::from("Thursday"),
+        5 => String::from("Friday"),
+        6 => String::from("Saturday"),
+        _ => String::from("Sunday")
+    }
+}
+
 fn print_hour_minute_symbol(minute: CronSymbol, hour: CronSymbol) -> String {
     match (minute, hour) {
         (CronSymbol::Wildcard, CronSymbol::Wildcard) => String::from("At every minute"),
