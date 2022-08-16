@@ -100,6 +100,38 @@ fn print_daytime(minute: ExpValue, hour: ExpValue) -> String {
     }
 }
 
+fn join_oxford_comma(list: &Vec<usize>) -> String {
+    if list.len() > 1 {
+        let mut comma_sep: Vec<String> = Vec::new();
+
+        for i in 0..(list.len()) {
+            let num = list
+                .get(i)
+                .unwrap()
+                .to_string();
+
+            // If last.
+            if i == list.len() - 1 {
+                let segment = format!("and {}", num).to_string();
+                comma_sep.push(segment);
+            }
+            else {
+                let segment = format!("{},", num).to_string();
+                comma_sep.push(segment);
+            }
+        }
+
+        comma_sep.join(" ")
+    }
+    else if list.len() == 1 {
+        list.first().unwrap().to_string()
+    }
+    else {
+        // Idk this shouldn't happen.
+        panic!("ERROR");
+    }
+}
+
 fn weekday_name(day: usize) -> String {
     match day % 7 {
         1 => String::from("Monday"),
@@ -113,7 +145,10 @@ fn weekday_name(day: usize) -> String {
 }
 
 fn print_hour_minute_lists(minute: &Vec<usize>, hour: &Vec<usize>) -> String {
-    todo!()
+    String::from(format!(
+            "At minute {} past hour {}",
+            join_oxford_comma(minute),
+            join_oxford_comma(hour)))
 }
 
 fn print_hour_minute_symbol(minute: CronSymbol, hour: CronSymbol) -> String {
@@ -122,7 +157,7 @@ fn print_hour_minute_symbol(minute: CronSymbol, hour: CronSymbol) -> String {
         (CronSymbol::Wildcard, CronSymbol::Number(h_n)) =>
             String::from(format!("At every minute past {}", time_with_am_pm(h_n, 0))),
         (CronSymbol::Number(m_n), CronSymbol::Number(h_n)) => String::from(format!("At {}", time_with_am_pm(m_n, h_n))),
-        (CronSymbol::Number(m_n), CronSymbol::Wildcard) => String::from("At minute 0 every hour"),
+        (CronSymbol::Number(m_n), CronSymbol::Wildcard) => String::from(format!("At minute {} every hour", m_n)),
     }
 }
 
