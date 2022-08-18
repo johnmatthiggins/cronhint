@@ -63,40 +63,27 @@ fn main() {
     }
 }
 
-fn print_daytime(minute: ExpValue, hour: ExpValue) -> String {
+fn print_daytime(minute: &ExpValue, hour: &ExpValue) -> String {
     match (minute, hour) {
-        (ExpValue::List(m_list), ExpValue::List(h_list))
-            => print_hour_minute_lists(&m_list, &h_list),
-        (ExpValue::Range(m_start, m_end), ExpValue::Range(h_start, h_end))
-            => todo!(),
-        (ExpValue::Frac(m_frac), ExpValue::Frac(h_frac))
-            => todo!(),
-        (ExpValue::Symbol(m_sym), ExpValue::Symbol(h_sym))
-            => todo!(),
-        (ExpValue::Symbol(m_sym), ExpValue::Frac(h_frac))
-            => todo!(),
-        (ExpValue::Frac(m_frac), ExpValue::Symbol(h_sym))
-            => todo!(),
-        (ExpValue::Range(m_start, m_end), ExpValue::Symbol(h_sym))
-            => todo!(),
-        (ExpValue::Symbol(m_sym), ExpValue::Range(h_start, h_end))
-            => todo!(),
-        (ExpValue::Range(m_start, m_end), ExpValue::Frac(h_frac))
-            => todo!(),
-        (ExpValue::Frac(m_frac), ExpValue::Range(h_start, h_end))
-            => todo!(),
-        (ExpValue::Range(m_start, m_end), ExpValue::List(h_list))
-            => todo!(),
-        (ExpValue::List(m_list), ExpValue::Range(h_start, h_end))
-            => todo!(),
-        (ExpValue::Symbol(m_sym), ExpValue::List(h_list))
-            => todo!(),
-        (ExpValue::List(m_list), ExpValue::Symbol(h_sym))
-            => todo!(),
-        (ExpValue::Frac(m_frac), ExpValue::List(h_list))
-            => todo!(),
-        (ExpValue::List(m_list), ExpValue::Frac(h_frac))
-            => todo!(),
+        (ExpValue::Symbol(cs_min), _) => print_symbol_first(&cs_min, &hour),
+        (ExpValue::List(m_list), _) => print_list_first(&m_list, hour),
+        (ExpValue::Range(m_start, m_end), _) =>
+            String::from(format!("At minute {} past {}",
+                                 join_oxford_comma(&minute),
+                                 hour.hour_str())),
+        (ExpValue::Frac(m_frac), _) =>
+            String::from(format!("At every {} minute past {}",
+                                 with_ordinal_postfix(&m_frac), hour.hour_str())),
+    }
+}
+
+fn print_symbol_first(minute: &CronSymbol, hour: &ExpValue) -> String {
+    match hour {
+        ExpValue::Symbol(hour_sym) => print_daytime_symbols(minute, hour_sym),
+        _ => match minute {
+            CronSymbol::Wildcard => String::from(format!("Every minute past {}", hour.hour_str())),
+            CronSymbol::Number(m) => String::from(format!("At minute {} past {}", m, hour.hour_str())),
+        },
     }
 }
 
@@ -144,24 +131,62 @@ fn weekday_name(day: usize) -> String {
     }
 }
 
-fn print_hour_minute_lists(minute: &Vec<usize>, hour: &Vec<usize>) -> String {
+fn print_daytime_lists(minute: &Vec<usize>, hour: &Vec<usize>) -> String {
     String::from(format!(
             "At minute {} past hour {}",
             join_oxford_comma(minute),
             join_oxford_comma(hour)))
 }
 
-fn print_hour_minute_symbol(minute: CronSymbol, hour: CronSymbol) -> String {
+fn print_daytime_ranges(minutes: (usize, usize), hours: (usize, usize)) -> String {
+    String::from(
+        format!(
+            "At every minute from {} through {} past every hour from {} through {}",
+                         minutes.0, minutes.1, hours.0, hours.1))
+}
+
+fn print_daytime_fractions(minute: &usize, hour: &usize) -> String {
+    String::from(format!("At every {} minute past every {} hour",
+                    with_ordinal_postfix(&minute),
+                    with_ordinal_postfix(&hour)))
+}
+
+fn print_daytime_symbols(minute: &CronSymbol, hour: &CronSymbol) -> String {
     match (minute, hour) {
         (CronSymbol::Wildcard, CronSymbol::Wildcard) => String::from("At every minute"),
         (CronSymbol::Wildcard, CronSymbol::Number(h_n)) =>
-            String::from(format!("At every minute past {}", time_with_am_pm(h_n, 0))),
+            String::from(format!("At every minute past {}", time_with_am_pm(h_n, &0))),
         (CronSymbol::Number(m_n), CronSymbol::Number(h_n)) => String::from(format!("At {}", time_with_am_pm(m_n, h_n))),
         (CronSymbol::Number(m_n), CronSymbol::Wildcard) => String::from(format!("At minute {} every hour", m_n)),
     }
 }
 
-fn time_with_am_pm(hour: usize, minutes: usize) -> String {
+fn print_daytime_symbol_fraction(minute: &CronSymbol, hour: &usize) -> String {
+    match minute {
+        CronSymbol::Wildcard =>
+            String::from(format!(
+                    "At every minute past every {} hour",
+                    with_ordinal_postfix(hour))),
+        CronSymbol::Number(n) =>
+            String::from(format!(
+                "At minute {} past every {} hour",
+                n,
+                with_ordinal_postfix(hour))),
+    }
+}
+
+fn print_daytime_fraction_symbol(minute: &usize, hour: &CronSymbol) -> String {
+    match hour {
+        CronSymbol::Wildcard =>
+            String::from(format!("At every {} minute",
+                    with_ordinal_postfix(minute))),
+        CronSymbol::Number(n) =>
+            String::from(format!("At every {} minute past {}",
+                    with_ordinal_postfix(minute), time_with_am_pm(n, &0))),
+    }
+}
+
+fn time_with_am_pm(hour: &usize, minutes: &usize) -> String {
     match hour % 24 {
         0 => String::from(format!("12:{:0>#9} AM", minutes)),
         12 => String::from(format!("{}:{:0>#9} PM", hour, minutes)),
@@ -191,6 +216,24 @@ fn with_ordinal_postfix(number: &usize) -> String {
                 _ => panic!("CANNOT PARSE!!!"),
             }
         },
+    }
+}
+
+trait CronDisplay {
+    fn hour_str(&self) -> String;
+}
+
+impl CronDisplay for ExpValue {
+    fn hour_str(&self) -> String {
+        match self {
+            ExpValue::List(list) =>
+                String::from(format!("hour {}", join_oxford_comma(list))),
+            ExpValue::Range(start, end) =>
+                String::from(format!("every hour from {} through {}", start, end)),
+            ExpValue::Frac(div) =>
+                String::from(format!("every {} hour", with_ordinal_postfix(div))),
+            _ => todo!(),
+        }
     }
 }
 
