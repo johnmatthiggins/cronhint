@@ -1,31 +1,36 @@
-CRON EXAMPLES:
-(Courtesy of crontab guru)
+Grammar Notes:
 
-5 0 * 8 *
-= At 00:05 in August.
+2^5 = 32 combinations
 
-At [[5:Minute],[0:Hour]] in [8:Month].
+1 * * * *
+At minute 1
 
-15 14 1 * *
-= At 14:15 on day-of-month 1.
+1 * * * 1
+At minute 1 on Monday
+["on"]
 
-At [[15:Minute],[14:Hour]] on [1:Day].
+1 * 1 * 1
+At minute 1 on day-of-month 1 and on Monday
+["on", "and on"]
 
-0 22 * * 1-5
-= At 22:00 on every day-of-week from Monday through Friday.
+1 * * 1 *
+At minute 1 in January
+["in"]
 
-At [[0:Minute],[22:Hour]] on [1-5:WeekDay]
+1 1 * 1 *
+At 1:01 in January
 
-23 0-20/2 * * *
-= At minute 23 past every 2nd hour from 0 through 20.
+1 1 1 1 *
+At 1:01 on day-of-month 1 in January
+["on", "in"]
 
-At []
+1 * 1 1 1
+At minute 1 on day-of-month 1 and on Monday in January.
+["on", "and on", "in"]
 
-5 4 * * 0
-= At 04:05 on Sunday.
+1 * * 1 1
+At minute 1 on Monday in January
+["on", "in"]
 
-0 0,12 1 */2 *
-= At minute 0 past hour 0 and 12 on day-of-month 1 in every 2nd month.
-
-0 4 8-14 * *
-= At 04:00 on every day-of-month from 8 through 14.
+At minute 1 on day-of-month 1 and on Monday
+["on", "and on"]

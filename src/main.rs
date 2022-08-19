@@ -78,6 +78,24 @@ fn print_daytime(minute: &ExpValue, hour: &ExpValue) -> String {
     }
 }
 
+fn print_day(day: &ExpValue) -> String {
+    match day {
+        _ => todo!()
+    }
+}
+
+fn print_weekday(weekday: &ExpValue) -> String {
+    match weekday {
+        _ => todo!()
+    }
+}
+
+fn print_month(month: &ExpValue) -> String {
+    match month {
+        _ => todo!()
+    }
+}
+
 fn print_symbol_first(minute: &CronSymbol, hour: &ExpValue) -> String {
     match hour {
         ExpValue::Symbol(hour_sym) => print_daytime_symbols(minute, hour_sym),
@@ -88,7 +106,7 @@ fn print_symbol_first(minute: &CronSymbol, hour: &ExpValue) -> String {
     }
 }
 
-fn join_oxford_comma(list: &Vec<usize>) -> String {
+fn join_oxford_comma<T: ToString>(list: &Vec<T>) -> String {
     if list.len() > 1 {
         let mut comma_sep: Vec<String> = Vec::new();
 
@@ -120,7 +138,7 @@ fn join_oxford_comma(list: &Vec<usize>) -> String {
     }
 }
 
-fn weekday_name(day: usize) -> String {
+fn weekday_name(day: &usize) -> String {
     match day % 7 {
         1 => String::from("Monday"),
         2 => String::from("Tuesday"),
@@ -202,6 +220,9 @@ fn with_ordinal_postfix(number: &usize) -> String {
 
 trait CronDisplay {
     fn hour_str(&self) -> String;
+    fn weekday_str(&self) -> String;
+    fn day_str(&self) -> String;
+    fn month_str(&self) -> String;
 }
 
 impl CronDisplay for ExpValue {
@@ -216,6 +237,28 @@ impl CronDisplay for ExpValue {
             _ => String::from(""),
         }
     }
+
+    fn weekday_str(&self) -> String {
+        match self {
+            ExpValue::List(list) => String::from(format!("on {}", 
+                                         join_oxford_comma(&list
+                                                           .iter()
+                                                           .map(|x| weekday_name(x))
+                                                           .collect()))),
+            ExpValue::Range(start, end) => String::from(format!("on every day of week from {} through {}",
+                                                                weekday_name(&start), weekday_name(&end))),
+            ExpValue::Frac(div) => String::from(format!("on every {} day of the week.",
+                                                        with_ordinal_postfix(&div))),
+            ExpValue::Symbol(weekday) => match weekday {
+                CronSymbol::Wildcard => String::from(""),
+                CronSymbol::Number(n) => String::from("on Monday"),
+            }
+        }
+    }
+
+    fn day_str(&self) -> String { todo!() }
+
+    fn month_str(&self) -> String { todo!() }
 }
 
 impl ToString for CronExp {
@@ -227,7 +270,7 @@ impl ToString for CronExp {
         //              self.day.value.to_string(),
         //              self.month.value.to_string(),
         //              self.weekday.value.to_string()))
-        String::from(format!("{}", print_daytime(&self.minute.value, &self.hour.value)))
+        String::from(format!("{}\n{}", print_daytime(&self.minute.value, &self.hour.value), self.weekday.value.weekday_str()))
     }
 }
 
