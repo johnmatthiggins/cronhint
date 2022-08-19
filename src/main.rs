@@ -256,7 +256,20 @@ impl CronDisplay for ExpValue {
         }
     }
 
-    fn day_str(&self) -> String { todo!() }
+    fn day_str(&self) -> String {
+        match self {
+            ExpValue::List(list) => String::from(
+                format!("on day-of-month {}", join_oxford_comma(list))),
+            ExpValue::Frac(div) => String::from(
+                format!("on every {} day-of-month", with_ordinal_postfix(&div))),
+            ExpValue::Range(start, end) => String::from(
+                format!("on every day-of-month from {} through {}", start, end)),
+            ExpValue::Symbol(sym) => match sym {
+                CronSymbol::Wildcard => String::from(""),
+                CronSymbol::Number(n) => String::from(format!("on day-of-month {}", n)),
+            },
+        }
+    }
 
     fn month_str(&self) -> String { todo!() }
 }
@@ -270,7 +283,10 @@ impl ToString for CronExp {
         //              self.day.value.to_string(),
         //              self.month.value.to_string(),
         //              self.weekday.value.to_string()))
-        String::from(format!("{}\n{}", print_daytime(&self.minute.value, &self.hour.value), self.weekday.value.weekday_str()))
+        String::from(format!("{}\n{}\n{}",
+                             print_daytime(&self.minute.value, &self.hour.value),
+                             self.day.value.day_str(),
+                             self.weekday.value.weekday_str()))
     }
 }
 
