@@ -1,7 +1,6 @@
 mod test;
 
 use std::vec::Vec;
-use std::env;
 use std::io::{self, BufRead};
 use clap::Parser;
 
@@ -36,10 +35,6 @@ struct Args {
     /// Read in CRON expression from standard input.
     #[clap(short, long, action = clap::ArgAction::Count)]
     input: u8,
-
-    // /// Create a REPL session for evaluating CRON expressions.
-    // #[clap(short, long, action = clap::ArgAction::Count)]
-    // repl: u8,
     
     /// CRON expression to translate.
     #[clap(value_parser, value_name = "EXPRESSION")]
