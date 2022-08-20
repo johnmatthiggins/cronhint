@@ -2,6 +2,8 @@ mod test;
 
 use std::vec::Vec;
 use std::env;
+use std::io::{self, BufRead};
+use clap::Parser;
 
 #[derive(Debug)]
 struct CronExp {
@@ -27,26 +29,49 @@ enum CronSymbol {
     Number(usize),
 }
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
+/// CLI tool for translating CRON expressions to plain english.
+#[derive(Parser, Debug)]
+#[clap(version, author, about, long_about = None)]
+struct Args {
+    /// Read in CRON expression from standard input.
+    #[clap(short, long, action = clap::ArgAction::Count)]
+    input: u8,
 
-    if args.len() != 2 {
-        println!("USAGE: cronhint '* * * * *'");
+    // /// Create a REPL session for evaluating CRON expressions.
+    // #[clap(short, long, action = clap::ArgAction::Count)]
+    // repl: u8,
+    
+    /// CRON expression to translate.
+    #[clap(value_parser, value_name = "EXPRESSION")]
+    expression: Option<String>,
+}
+
+fn main() {
+    let args = Args::parse();
+
+    let mut cron_str;
+
+    // If configured to accept input from STDIN.
+    if args.input > 0 {
+        cron_str = String::new();
+        io::stdin()
+            .lock()
+            .read_line(&mut cron_str)
+            .unwrap();
+
+        cron_str = cron_str.trim().to_string();
     }
     else {
-        let cron_str = args
-            .get(1)
-            .unwrap()
-            .to_string();
+        cron_str = args.expression.unwrap();
+    }
 
-        let cron_exp = parse_cron_exp(&cron_str);
+    let cron_exp = parse_cron_exp(&cron_str);
 
-        if let Some(exp) = cron_exp {
-            println!("{}", exp.to_string());
-        }
-        else {
-            println!("Expression could not be parsed!");
-        }
+    if let Some(exp) = cron_exp {
+        println!("{}", exp.to_string());
+    }
+    else {
+        println!("Expression could not be parsed!");
     }
 }
 
