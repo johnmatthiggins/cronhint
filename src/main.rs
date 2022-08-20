@@ -51,7 +51,6 @@ fn main() {
 }
 
 fn print_daytime(minute: &ExpValue, hour: &ExpValue) -> String {
-    dbg!("Hello 1");
     match (minute, hour) {
         (ExpValue::Symbol(cs_min), _) => print_symbol_first(&cs_min, &hour),
         (ExpValue::List(m_list), _) => format!("At minute {} {}",
@@ -152,7 +151,6 @@ fn month_name(month: &usize) -> String {
 }
 
 fn print_daytime_symbols(minute: &CronSymbol, hour: &CronSymbol) -> String {
-    dbg!("Hello world");
     match (minute, hour) {
         (CronSymbol::Wildcard, CronSymbol::Wildcard) => String::from("At every minute"),
         (CronSymbol::Wildcard, CronSymbol::Number(h_n)) =>
