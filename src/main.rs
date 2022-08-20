@@ -2,21 +2,12 @@ use std::vec::Vec;
 use std::env;
 
 #[derive(Debug)]
-enum TimeType {
-    Minute,
-    Hour,
-    Day,
-    Month,
-    Weekday,
-}
-
-#[derive(Debug)]
 struct CronExp {
-    minute: ExpComponent,
-    hour: ExpComponent,
-    day: ExpComponent,
-    month: ExpComponent,
-    weekday: ExpComponent,
+    minute: ExpValue,
+    hour: ExpValue,
+    day: ExpValue,
+    month: ExpValue,
+    weekday: ExpValue,
 }
 
 // Segment of CRON expression.
@@ -26,12 +17,6 @@ enum ExpValue {
     Range(usize, usize),
     Frac(usize),
     Symbol(CronSymbol),
-}
-
-#[derive(Debug)]
-struct ExpComponent {
-    value: ExpValue,
-    units: TimeType,
 }
 
 #[derive(Debug, Clone)]
@@ -66,33 +51,13 @@ fn main() {
 fn print_daytime(minute: &ExpValue, hour: &ExpValue) -> String {
     match (minute, hour) {
         (ExpValue::Symbol(cs_min), _) => print_symbol_first(&cs_min, &hour),
-        (ExpValue::List(m_list), _) => String::from(format!("At minute {} {}",
+        (ExpValue::List(m_list), _) => format!("At minute {} {}",
                                                             join_oxford_comma(&m_list),
-                                                            hour.hour_str())),
-        (ExpValue::Range(m_start, m_end), _) =>
-            String::from(format!("At every minute from {} through {} {}",
-                                m_start, m_end, hour.hour_str())),
-        (ExpValue::Frac(m_frac), _) =>
-            String::from(format!("At every {} minute {}",
-                                 with_ordinal_postfix(&m_frac), hour.hour_str())),
-    }
-}
-
-fn print_day(day: &ExpValue) -> String {
-    match day {
-        _ => todo!()
-    }
-}
-
-fn print_weekday(weekday: &ExpValue) -> String {
-    match weekday {
-        _ => todo!()
-    }
-}
-
-fn print_month(month: &ExpValue) -> String {
-    match month {
-        _ => todo!()
+                                                            hour.hour_str()),
+        (ExpValue::Range(m_start, m_end), _) => format!("At every minute from {} through {} {}",
+                                m_start, m_end, hour.hour_str()),
+        (ExpValue::Frac(m_frac), _) => format!("At every {} minute {}",
+                                 with_ordinal_postfix(&m_frac), hour.hour_str()),
     }
 }
 
@@ -100,8 +65,8 @@ fn print_symbol_first(minute: &CronSymbol, hour: &ExpValue) -> String {
     match hour {
         ExpValue::Symbol(hour_sym) => print_daytime_symbols(minute, hour_sym),
         _ => match minute {
-            CronSymbol::Wildcard => String::from(format!("Every minute past {}", hour.hour_str())),
-            CronSymbol::Number(m) => String::from(format!("At minute {} past {}", m, hour.hour_str())),
+            CronSymbol::Wildcard => format!("Every minute past {}", hour.hour_str()),
+            CronSymbol::Number(m) => format!("At minute {} past {}", m, hour.hour_str()),
         },
     }
 }
@@ -171,43 +136,19 @@ fn print_daytime_symbols(minute: &CronSymbol, hour: &CronSymbol) -> String {
     match (minute, hour) {
         (CronSymbol::Wildcard, CronSymbol::Wildcard) => String::from("At every minute"),
         (CronSymbol::Wildcard, CronSymbol::Number(h_n)) =>
-            String::from(format!("At every minute {}", time_with_am_pm(h_n, &0))),
-        (CronSymbol::Number(m_n), CronSymbol::Number(h_n)) => String::from(format!("At {}", time_with_am_pm(m_n, h_n))),
-        (CronSymbol::Number(m_n), CronSymbol::Wildcard) => String::from(format!("At minute {} every hour", m_n)),
-    }
-}
-
-fn print_daytime_symbol_fraction(minute: &CronSymbol, hour: &usize) -> String {
-    match minute {
-        CronSymbol::Wildcard =>
-            String::from(format!(
-                    "At every minute past every {} hour",
-                    with_ordinal_postfix(hour))),
-        CronSymbol::Number(n) =>
-            String::from(format!(
-                "At minute {} past every {} hour",
-                n,
-                with_ordinal_postfix(hour))),
-    }
-}
-
-fn print_daytime_fraction_symbol(minute: &usize, hour: &CronSymbol) -> String {
-    match hour {
-        CronSymbol::Wildcard =>
-            String::from(format!("At every {} minute",
-                    with_ordinal_postfix(minute))),
-        CronSymbol::Number(n) =>
-            String::from(format!("At every {} minute past {}",
-                    with_ordinal_postfix(minute), time_with_am_pm(n, &0))),
+            format!("At every minute {}", time_with_am_pm(h_n, &0)),
+        (CronSymbol::Number(m_n), CronSymbol::Number(h_n)) =>
+            format!("At {}", time_with_am_pm(m_n, h_n)),
+        (CronSymbol::Number(m_n), CronSymbol::Wildcard) => format!("At minute {} every hour", m_n),
     }
 }
 
 fn time_with_am_pm(hour: &usize, minutes: &usize) -> String {
     match hour % 24 {
-        0 => String::from(format!("12:{:0>#9} AM", minutes)),
-        12 => String::from(format!("{}:{:0>#9} PM", hour, minutes)),
-        13 ..= 23 => String::from(format!("{}:{:0>#9} PM", (hour % 24) - 11, minutes)),
-        _ => String::from(format!("{}:{:0>#9} AM", hour, minutes)),
+        0 => format!("12:{:0>#9} AM", minutes),
+        12 => format!("{}:{:0>#9} PM", hour, minutes),
+        13 ..= 23 => format!("{}:{:0>#9} PM", (hour % 24) - 11, minutes),
+        _ => format!("{}:{:0>#9} AM", hour, minutes),
     }
 }
 
@@ -225,10 +166,10 @@ fn with_ordinal_postfix(number: &usize) -> String {
 
             match last_character {
                 '0' | '4' | '5' | '6' | '7' | '8' | '9'
-                    => String::from(format!("{}th", number.to_string())),
-                '1' => String::from(format!("{}st", number.to_string())),
-                '2' => String::from(format!("{}nd", number.to_string())),
-                '3' => String::from(format!("{}rd", number.to_string())),
+                    => format!("{}th", number.to_string()),
+                '1' => format!("{}st", number.to_string()),
+                '2' => format!("{}nd", number.to_string()),
+                '3' => format!("{}rd", number.to_string()),
                 _ => panic!("CANNOT PARSE!!!"),
             }
         },
@@ -246,60 +187,60 @@ impl CronDisplay for ExpValue {
     fn hour_str(&self) -> String {
         match self {
             ExpValue::List(list) =>
-                String::from(format!("past hour {}", join_oxford_comma(list))),
+                format!("past hour {}", join_oxford_comma(list)),
             ExpValue::Range(start, end) =>
-                String::from(format!("past every hour from {} through {}", start, end)),
+                format!("past every hour from {} through {}", start, end),
             ExpValue::Frac(div) =>
-                String::from(format!("past every {} hour", with_ordinal_postfix(div))),
+                format!("past every {} hour", with_ordinal_postfix(div)),
             _ => String::from(""),
         }
     }
 
     fn weekday_str(&self) -> String {
         match self {
-            ExpValue::List(list) => String::from(format!("on {}", 
+            ExpValue::List(list) => format!("on {}", 
                                          join_oxford_comma(&list
                                                            .iter()
                                                            .map(|x| weekday_name(x))
-                                                           .collect()))),
-            ExpValue::Range(start, end) => String::from(format!("on every day of week from {} through {}",
-                                                                weekday_name(&start), weekday_name(&end))),
-            ExpValue::Frac(div) => String::from(format!("on every {} day of the week.",
-                                                        with_ordinal_postfix(&div))),
+                                                           .collect())),
+            ExpValue::Range(start, end) => format!("on every day of week from {} through {}",
+                                                                weekday_name(&start), weekday_name(&end)),
+            ExpValue::Frac(div) => format!("on every {} day of the week.",
+                                                        with_ordinal_postfix(&div)),
             ExpValue::Symbol(weekday) => match weekday {
                 CronSymbol::Wildcard => String::from(""),
-                CronSymbol::Number(n) => String::from("on Monday"),
+                CronSymbol::Number(n) => format!("on {}", weekday_name(&n)),
             }
         }
     }
 
     fn day_str(&self) -> String {
         match self {
-            ExpValue::List(list) => String::from(
-                format!("on day-of-month {}", join_oxford_comma(list))),
-            ExpValue::Frac(div) => String::from(
-                format!("on every {} day-of-month", with_ordinal_postfix(&div))),
-            ExpValue::Range(start, end) => String::from(
-                format!("on every day-of-month from {} through {}", start, end)),
+            ExpValue::List(list) =>
+                format!("on day-of-month {}", join_oxford_comma(list)),
+            ExpValue::Frac(div) =>
+                format!("on every {} day-of-month", with_ordinal_postfix(&div)),
+            ExpValue::Range(start, end) =>
+                format!("on every day-of-month from {} through {}", start, end),
             ExpValue::Symbol(sym) => match sym {
                 CronSymbol::Wildcard => String::from(""),
-                CronSymbol::Number(n) => String::from(format!("on day-of-month {}", n)),
+                CronSymbol::Number(n) => format!("on day-of-month {}", n),
             },
         }
     }
 
     fn month_str(&self) -> String {
         match self {
-            ExpValue::List(list) => String::from(format!("in {}", join_oxford_comma(&list.iter()
+            ExpValue::List(list) => format!("in {}", join_oxford_comma(&list.iter()
                                                          .map(|x| month_name(x))
-                                                         .collect()))),
-            ExpValue::Frac(div) => String::from(format!("in every {} month",
-                                                with_ordinal_postfix(&div))),
-            ExpValue::Range(start, end) => String::from(
-                format!("in every month from {} through {}", month_name(&start), month_name(&end))),
+                                                         .collect())),
+            ExpValue::Frac(div) => format!("in every {} month",
+                                                with_ordinal_postfix(&div)),
+            ExpValue::Range(start, end) =>
+                format!("in every month from {} through {}", month_name(&start), month_name(&end)),
             ExpValue::Symbol(sym) => match sym {
                 CronSymbol::Wildcard => String::from(""),
-                CronSymbol::Number(n) => String::from(format!("in {}", month_name(&n))),
+                CronSymbol::Number(n) => format!("in {}", month_name(&n)),
             },
         }
     }
@@ -307,18 +248,44 @@ impl CronDisplay for ExpValue {
 
 impl ToString for CronExp {
     fn to_string(&self) -> String {
-        // String::from(format!(
-        //              "{} {} {} {} {}",
-        //              self.minute.value.to_string(),
-        //              self.hour.value.to_string(),
-        //              self.day.value.to_string(),
-        //              self.month.value.to_string(),
-        //              self.weekday.value.to_string()))
-        String::from(format!("{}\n{}\n{}\n{}",
-                             print_daytime(&self.minute.value, &self.hour.value),
-                             self.day.value.day_str(),
-                             self.weekday.value.weekday_str(),
-                             self.month.value.month_str()))
+        let daytime = print_daytime(&self.minute, &self.hour);
+        let day = self.day.day_str();
+        let weekday = self.weekday.weekday_str();
+        let month = self.month.month_str();
+
+        let mut output = daytime.clone();
+        
+        if day.is_empty() {
+            if weekday.is_empty() {
+                if !month.is_empty() {
+                    output += format!(" {}", month).as_str();
+                }
+            }
+            else {
+                output += format!(" {}", weekday).as_str();
+
+                if !month.is_empty() {
+                    output += format!(" {}", month).as_str();
+                }
+            }
+        }
+        else {
+            output += format!(" {}", day).as_str();
+            
+            if weekday.is_empty() {
+                if !month.is_empty() {
+                    output += format!(" {}", month).as_str();
+                }
+            }
+            else {
+                output += format!(" and {}", weekday).as_str();
+                if !month.is_empty() {
+                    output += format!(" {}", month).as_str();
+                }
+            }
+        }
+
+        output
     }
 }
 
@@ -351,26 +318,11 @@ fn parse_cron_exp(cron_exp: &String) -> Option<CronExp> {
 
         if cron_segs.len() == 5 {
             let result = CronExp {
-                minute: ExpComponent {
-                    value: cron_segs.get(0).unwrap().clone(),
-                    units: TimeType::Minute,
-                },
-                hour: ExpComponent {
-                    value: cron_segs.get(1).unwrap().clone(),
-                    units: TimeType::Hour,
-                },
-                day: ExpComponent {
-                    value: cron_segs.get(2).unwrap().clone(),
-                    units: TimeType::Day,
-                },
-                month: ExpComponent {
-                    value: cron_segs.get(3).unwrap().clone(),
-                    units: TimeType::Month,
-                },
-                weekday: ExpComponent { 
-                    value: cron_segs.get(4).unwrap().clone(),
-                    units: TimeType::Weekday,
-                },
+                minute: cron_segs.get(0).unwrap().clone(),
+                hour: cron_segs.get(1).unwrap().clone(),
+                day: cron_segs.get(2).unwrap().clone(),
+                month: cron_segs.get(3).unwrap().clone(),
+                weekday: cron_segs.get(4).unwrap().clone(),
             };
 
             Some(result)
