@@ -150,6 +150,23 @@ fn weekday_name(day: &usize) -> String {
     }
 }
 
+fn month_name(month: &usize) -> String {
+    match month % 12 {
+        1 => String::from("January"),
+        2 => String::from("February"),
+        3 => String::from("March"),
+        4 => String::from("April"),
+        5 => String::from("May"),
+        6 => String::from("June"),
+        7 => String::from("July"),
+        8 => String::from("August"),
+        9 => String::from("September"),
+        10 => String::from("October"),
+        11 => String::from("November"),
+        _ => String::from("December"),
+    }
+}
+
 fn print_daytime_symbols(minute: &CronSymbol, hour: &CronSymbol) -> String {
     match (minute, hour) {
         (CronSymbol::Wildcard, CronSymbol::Wildcard) => String::from("At every minute"),
@@ -271,7 +288,21 @@ impl CronDisplay for ExpValue {
         }
     }
 
-    fn month_str(&self) -> String { todo!() }
+    fn month_str(&self) -> String {
+        match self {
+            ExpValue::List(list) => String::from(format!("in {}", join_oxford_comma(&list.iter()
+                                                         .map(|x| month_name(x))
+                                                         .collect()))),
+            ExpValue::Frac(div) => String::from(format!("in every {} month",
+                                                with_ordinal_postfix(&div))),
+            ExpValue::Range(start, end) => String::from(
+                format!("in every month from {} through {}", month_name(&start), month_name(&end))),
+            ExpValue::Symbol(sym) => match sym {
+                CronSymbol::Wildcard => String::from(""),
+                CronSymbol::Number(n) => String::from(format!("in {}", month_name(&n))),
+            },
+        }
+    }
 }
 
 impl ToString for CronExp {
@@ -283,10 +314,11 @@ impl ToString for CronExp {
         //              self.day.value.to_string(),
         //              self.month.value.to_string(),
         //              self.weekday.value.to_string()))
-        String::from(format!("{}\n{}\n{}",
+        String::from(format!("{}\n{}\n{}\n{}",
                              print_daytime(&self.minute.value, &self.hour.value),
                              self.day.value.day_str(),
-                             self.weekday.value.weekday_str()))
+                             self.weekday.value.weekday_str(),
+                             self.month.value.month_str()))
     }
 }
 
