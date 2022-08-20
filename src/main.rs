@@ -1,3 +1,5 @@
+mod test;
+
 use std::vec::Vec;
 use std::env;
 
@@ -49,6 +51,7 @@ fn main() {
 }
 
 fn print_daytime(minute: &ExpValue, hour: &ExpValue) -> String {
+    dbg!("Hello 1");
     match (minute, hour) {
         (ExpValue::Symbol(cs_min), _) => print_symbol_first(&cs_min, &hour),
         (ExpValue::List(m_list), _) => format!("At minute {} {}",
@@ -56,8 +59,18 @@ fn print_daytime(minute: &ExpValue, hour: &ExpValue) -> String {
                                                             hour.hour_str()),
         (ExpValue::Range(m_start, m_end), _) => format!("At every minute from {} through {} {}",
                                 m_start, m_end, hour.hour_str()),
-        (ExpValue::Frac(m_frac), _) => format!("At every {} minute {}",
-                                 with_ordinal_postfix(&m_frac), hour.hour_str()),
+        (ExpValue::Frac(m_frac), _) =>
+            format!("At every {} minute{}",
+                with_ordinal_postfix(&m_frac), left_pad_if_not_empty(hour.hour_str())),
+    }
+}
+
+fn left_pad_if_not_empty(text: String) -> String {
+    if text.is_empty() {
+        text
+    }
+    else {
+        format!(" {}", text)
     }
 }
 
@@ -65,8 +78,8 @@ fn print_symbol_first(minute: &CronSymbol, hour: &ExpValue) -> String {
     match hour {
         ExpValue::Symbol(hour_sym) => print_daytime_symbols(minute, hour_sym),
         _ => match minute {
-            CronSymbol::Wildcard => format!("Every minute past {}", hour.hour_str()),
-            CronSymbol::Number(m) => format!("At minute {} past {}", m, hour.hour_str()),
+            CronSymbol::Wildcard => format!("At every minute {}", hour.hour_str()),
+            CronSymbol::Number(m) => format!("At minute {} {}", m, hour.hour_str()),
         },
     }
 }
@@ -87,8 +100,14 @@ fn join_oxford_comma<T: ToString>(list: &Vec<T>) -> String {
                 comma_sep.push(segment);
             }
             else {
-                let segment = format!("{},", num).to_string();
-                comma_sep.push(segment);
+                if i == list.len() - 2 && list.len() == 2 {
+                    let segment = format!("{}", num).to_string();
+                    comma_sep.push(segment);
+                }
+                else {
+                    let segment = format!("{},", num).to_string();
+                    comma_sep.push(segment);
+                }
             }
         }
 
@@ -133,22 +152,23 @@ fn month_name(month: &usize) -> String {
 }
 
 fn print_daytime_symbols(minute: &CronSymbol, hour: &CronSymbol) -> String {
+    dbg!("Hello world");
     match (minute, hour) {
         (CronSymbol::Wildcard, CronSymbol::Wildcard) => String::from("At every minute"),
         (CronSymbol::Wildcard, CronSymbol::Number(h_n)) =>
-            format!("At every minute {}", time_with_am_pm(h_n, &0)),
+            format!("At every minute past {}", time_with_am_pm(h_n, &0)),
         (CronSymbol::Number(m_n), CronSymbol::Number(h_n)) =>
             format!("At {}", time_with_am_pm(m_n, h_n)),
         (CronSymbol::Number(m_n), CronSymbol::Wildcard) => format!("At minute {} every hour", m_n),
     }
 }
 
-fn time_with_am_pm(hour: &usize, minutes: &usize) -> String {
+fn time_with_am_pm(minutes: &usize, hour: &usize) -> String {
     match hour % 24 {
-        0 => format!("12:{:0>#9} AM", minutes),
-        12 => format!("{}:{:0>#9} PM", hour, minutes),
-        13 ..= 23 => format!("{}:{:0>#9} PM", (hour % 24) - 11, minutes),
-        _ => format!("{}:{:0>#9} AM", hour, minutes),
+        0 => format!("12:{:0>#2} AM", minutes),
+        12 => format!("{}:{:0>#2} PM", hour, minutes),
+        13 ..= 23 => format!("{}:{:0>#2} PM", (hour % 24) - 12, minutes),
+        _ => format!("{}:{:0>#2} AM", hour, minutes),
     }
 }
 
@@ -203,9 +223,9 @@ impl CronDisplay for ExpValue {
                                                            .iter()
                                                            .map(|x| weekday_name(x))
                                                            .collect())),
-            ExpValue::Range(start, end) => format!("on every day of week from {} through {}",
+            ExpValue::Range(start, end) => format!("on every day-of-week from {} through {}",
                                                                 weekday_name(&start), weekday_name(&end)),
-            ExpValue::Frac(div) => format!("on every {} day of the week.",
+            ExpValue::Frac(div) => format!("on every {} day-of-week",
                                                         with_ordinal_postfix(&div)),
             ExpValue::Symbol(weekday) => match weekday {
                 CronSymbol::Wildcard => String::from(""),
@@ -285,7 +305,7 @@ impl ToString for CronExp {
             }
         }
 
-        output
+        output + "."
     }
 }
 
@@ -355,23 +375,28 @@ fn parse_exp_seg(exp: &String) -> Option<ExpValue> {
 }
 
 fn parse_list(exp: &String) -> Option<ExpValue> {
-    let list: Vec<&str> = exp
-        .split(",")
-        .collect();
+    if exp.contains(",") {
+        let list: Vec<&str> = exp
+            .split(",")
+            .collect();
 
-    let result: Vec<usize> = list
-        .clone()
-        .into_iter()
-        .map(|x| x.parse::<usize>().ok())
-        .filter(|x| matches!(x, Some(_)))
-        .map(|x| x.unwrap())
-        .collect();
+        let result: Vec<usize> = list
+            .clone()
+            .into_iter()
+            .map(|x| x.parse::<usize>().ok())
+            .filter(|x| matches!(x, Some(_)))
+            .map(|x| x.unwrap())
+            .collect();
 
-    if result.len() != list.len() {
-        None
+        if result.len() != list.len() {
+            None
+        }
+        else {
+            Some(ExpValue::List(result))
+        }
     }
     else {
-        Some(ExpValue::List(result))
+        None
     }
 }
 
